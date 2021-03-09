@@ -1,0 +1,74 @@
+version: '3'
+services:
+
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: digitalocean.com/php
+    container_name: green-app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/app
+    volumes:
+      - ./application:/var/www/app
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - green-network
+
+  #Nginx Service
+  webserver:
+    image: nginx:alpine
+    container_name: green-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8085:8080"
+      - "485:443"
+    volumes:
+      - ./application:/var/www/app
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - green-network
+
+  #MySQL Service
+  db:
+    image: mysql:5.7.22
+    container_name: green-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3319:3306"
+    environment:
+      MYSQL_DATABASE: green
+      MYSQL_ROOT_PASSWORD: YYGD!^^!DD
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker/green/mysql:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - green-network
+      
+  smtp:
+    image: codions/mailcatcher
+    container_name: green.smtp
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+    networks:
+      - green-network
+
+#Docker Networks
+networks:
+  green-network:
+    driver: bridge
+
+#Volumes
+volumes:
+  dbdata:
+    driver: local
